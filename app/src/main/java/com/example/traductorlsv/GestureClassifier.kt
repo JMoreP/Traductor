@@ -6,33 +6,33 @@ import com.google.mediapipe.tasks.components.containers.NormalizedLandmark
 import org.json.JSONArray
 import org.json.JSONObject
 import java.io.File
+import kotlin.math.min
 import kotlin.math.pow
 import kotlin.math.sqrt
 
-// Estructura de datos para un ejemplo de entrenamiento
+// Ahora almacenamos una SECUENCIA de fotogramas, no solo uno.
 data class GestureSample(
     val label: String,
-    val features: FloatArray
+    val sequence: List<FloatArray>
 )
 
 class GestureClassifier(private val context: Context) {
     private val dataset = mutableListOf<GestureSample>()
-    private val datasetFile = File(context.filesDir, "knn_dataset.json")
+    private val datasetFile = File(context.filesDir, "dtw_dataset.json") // Cambiamos el archivo para evitar crashes con datos viejos
 
     init {
         loadDataset()
     }
 
     /**
-     * Normaliza los 21 puntos de la mano para que el modelo funcione
-     * sin importar en qué parte de la pantalla esté la mano o qué tan lejos esté.
+     * Normaliza los 21 puntos de la mano para un solo fotograma.
+     * Invariante a traslación (la muñeca es 0,0,0) y a escala.
      */
     private fun normalizeLandmarks(landmarks: List<NormalizedLandmark>): FloatArray? {
         if (landmarks.size != 21) return null
 
         val features = FloatArray(63)
         
-        // 1. Invariancia de Traslación: Hacemos que la muñeca (punto 0) sea el origen (0,0,0)
         val wristX = landmarks[0].x()
         val wristY = landmarks[0].y()
         val wristZ = landmarks[0].z()
@@ -43,17 +43,14 @@ class GestureClassifier(private val context: Context) {
             features[i * 3 + 2] = landmarks[i].z() - wristZ
         }
 
-        // 2. Invariancia de Escala: Calculamos la distancia entre la muñeca (0) y el nudillo medio (9)
         val scale = sqrt(
             features[9 * 3].pow(2) +
             features[9 * 3 + 1].pow(2) +
             features[9 * 3 + 2].pow(2)
         )
 
-        // Evitar división por cero
         if (scale < 0.00001f) return features
 
-        // Dividimos todas las coordenadas por la escala
         for (i in features.indices) {
             features[i] /= scale
         }
@@ -63,53 +60,83 @@ class GestureClassifier(private val context: Context) {
 
     /**
      * Guarda una nueva seña en el dataset (Modo Entrenamiento)
+     * Ahora recibe una lista de listas de landmarks (video de 1 segundo)
      */
-    fun addSample(label: String, landmarks: List<NormalizedLandmark>) {
-        val features = normalizeLandmarks(landmarks) ?: return
-        dataset.add(GestureSample(label, features))
+    fun addSampleSequence(label: String, sequence: List<List<NormalizedLandmark>>) {
+        val normalizedSeq = sequence.mapNotNull { normalizeLandmarks(it) }
+        if (normalizedSeq.isEmpty()) return
+        
+        dataset.add(GestureSample(label, normalizedSeq))
         saveDataset()
     }
 
     /**
-     * Clasifica la mano actual usando KNN (K-Nearest Neighbors)
+     * Clasifica el historial de movimientos recientes usando DTW (Dynamic Time Warping)
      */
-    fun classify(landmarks: List<NormalizedLandmark>, k: Int = 3): String {
+    fun classifySequence(sequence: List<List<NormalizedLandmark>>, k: Int = 3): String {
         if (dataset.isEmpty()) return "Sin datos"
         
-        val features = normalizeLandmarks(landmarks) ?: return "Error"
+        val normalizedSeq = sequence.mapNotNull { normalizeLandmarks(it) }
+        if (normalizedSeq.isEmpty()) return "Error"
 
-        // Calculamos la distancia Euclidiana entre esta mano y todas las del dataset
+        // Calculamos la distancia DTW entre esta secuencia y todas las del dataset
         val distances = dataset.map { sample ->
-            val dist = calculateDistance(features, sample.features)
+            val dist = calculateDTWDistance(normalizedSeq, sample.sequence)
             Pair(sample.label, dist)
         }
 
-        // Ordenamos de menor a mayor distancia y tomamos los K más cercanos
         val nearestNeighbors = distances.sortedBy { it.second }.take(k)
-
-        // Sistema de votación simple: la etiqueta que más se repita gana
         val votes = nearestNeighbors.groupingBy { it.first }.eachCount()
         
-        // Verificamos si la distancia es demasiado grande (para evitar falsos positivos)
         val closestDist = nearestNeighbors.first().second
-        if (closestDist > 1.5f) { // Umbral de confianza experimental
+        
+        // Umbral de confianza. Ajustable si es muy sensible o muy rígido.
+        if (closestDist > 0.9f) { 
             return "..." 
         }
 
         return votes.maxByOrNull { it.value }?.key ?: "..."
     }
 
-    private fun calculateDistance(f1: FloatArray, f2: FloatArray): Float {
+    /**
+     * Algoritmo DTW: Encuentra la similitud entre dos secuencias de video,
+     * incluso si se grabaron a diferentes velocidades.
+     */
+    private fun calculateDTWDistance(seq1: List<FloatArray>, seq2: List<FloatArray>): Float {
+        val n = seq1.size
+        val m = seq2.size
+        
+        if (n == 0 || m == 0) return Float.MAX_VALUE
+        
+        val dtw = Array(n + 1) { FloatArray(m + 1) { Float.MAX_VALUE } }
+        dtw[0][0] = 0f
+
+        for (i in 1..n) {
+            for (j in 1..m) {
+                val cost = calculateFrameDistance(seq1[i - 1], seq2[j - 1])
+                dtw[i][j] = cost + min(
+                    dtw[i - 1][j],       // Inserción
+                    min(dtw[i][j - 1],   // Eliminación
+                        dtw[i - 1][j - 1] // Coincidencia
+                    )
+                )
+            }
+        }
+        
+        // Normalizamos por la longitud para ser justos con gestos largos vs cortos
+        return dtw[n][m] / (n + m)
+    }
+
+    // Distancia Euclidiana entre dos fotogramas estáticos
+    private fun calculateFrameDistance(f1: FloatArray, f2: FloatArray): Float {
         var sum = 0f
         for (i in f1.indices) {
-            sum += (f1[i] - f2[i]).pow(2)
+            val diff = f1[i] - f2[i]
+            sum += diff * diff
         }
         return sqrt(sum)
     }
 
-    /**
-     * Guarda el dataset en almacenamiento interno como JSON
-     */
     private fun saveDataset() {
         try {
             val jsonArray = JSONArray()
@@ -117,24 +144,25 @@ class GestureClassifier(private val context: Context) {
                 val jsonObj = JSONObject()
                 jsonObj.put("label", sample.label)
                 
-                val featuresArray = JSONArray()
-                for (f in sample.features) {
-                    featuresArray.put(f.toDouble())
+                val sequenceArray = JSONArray()
+                for (frame in sample.sequence) {
+                    val frameArray = JSONArray()
+                    for (f in frame) {
+                        frameArray.put(f.toDouble())
+                    }
+                    sequenceArray.put(frameArray)
                 }
-                jsonObj.put("features", featuresArray)
+                jsonObj.put("sequence", sequenceArray)
                 
                 jsonArray.put(jsonObj)
             }
             datasetFile.writeText(jsonArray.toString())
-            Log.d("KNN", "Dataset guardado con ${dataset.size} muestras")
+            Log.d("KNN_DTW", "Dataset guardado con ${dataset.size} secuencias")
         } catch (e: Exception) {
-            Log.e("KNN", "Error guardando dataset", e)
+            Log.e("KNN_DTW", "Error guardando dataset", e)
         }
     }
 
-    /**
-     * Carga el dataset desde almacenamiento interno
-     */
     private fun loadDataset() {
         if (!datasetFile.exists()) return
 
@@ -146,18 +174,23 @@ class GestureClassifier(private val context: Context) {
             for (i in 0 until jsonArray.length()) {
                 val jsonObj = jsonArray.getJSONObject(i)
                 val label = jsonObj.getString("label")
-                val featuresArray = jsonObj.getJSONArray("features")
+                val sequenceArray = jsonObj.getJSONArray("sequence")
                 
-                val features = FloatArray(featuresArray.length())
-                for (j in 0 until featuresArray.length()) {
-                    features[j] = featuresArray.getDouble(j).toFloat()
+                val sequence = mutableListOf<FloatArray>()
+                for (j in 0 until sequenceArray.length()) {
+                    val frameArray = sequenceArray.getJSONArray(j)
+                    val frame = FloatArray(frameArray.length())
+                    for (k in 0 until frameArray.length()) {
+                        frame[k] = frameArray.getDouble(k).toFloat()
+                    }
+                    sequence.add(frame)
                 }
                 
-                dataset.add(GestureSample(label, features))
+                dataset.add(GestureSample(label, sequence))
             }
-            Log.d("KNN", "Dataset cargado con ${dataset.size} muestras")
+            Log.d("KNN_DTW", "Dataset cargado con ${dataset.size} secuencias")
         } catch (e: Exception) {
-            Log.e("KNN", "Error cargando dataset", e)
+            Log.e("KNN_DTW", "Error cargando dataset", e)
         }
     }
 
