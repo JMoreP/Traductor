@@ -13,7 +13,12 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import com.example.traductorlsv.ui.components.DuoBottomNavigation
+import com.example.traductorlsv.ui.screens.games.Game
+import com.example.traductorlsv.ui.screens.games.GamePlaceholderScreen
 import com.example.traductorlsv.ui.screens.games.GamesScreen
+import com.example.traductorlsv.ui.screens.games.guess.GuessGameScreen
+import com.example.traductorlsv.ui.screens.games.memory.MemoryGameScreen
+import com.example.traductorlsv.ui.screens.games.speed.SpeedGameScreen
 import com.example.traductorlsv.ui.screens.home.HomeScreen
 import com.example.traductorlsv.ui.screens.onboarding.OnboardingScreen
 import com.example.traductorlsv.ui.screens.profile.ProfileScreen
@@ -36,7 +41,11 @@ fun TraductorNavHost(
             Route.Home.route,
             Route.Games.route,
             Route.Stats.route,
-            Route.Profile.route
+            Route.Profile.route,
+            Route.GameGuess.route,
+            Route.GameMemory.route,
+            Route.GameSpeed.route,
+            Route.GameChallenge.route
         )
     }
     val showBottomBar = currentRoute in bottomBarRoutes
@@ -45,8 +54,15 @@ fun TraductorNavHost(
         contentWindowInsets = WindowInsets(0, 0, 0, 0),
         bottomBar = {
             if (showBottomBar) {
+                val selectedBottomRoute = when (currentRoute) {
+                    Route.GameGuess.route,
+                    Route.GameMemory.route,
+                    Route.GameSpeed.route,
+                    Route.GameChallenge.route -> Route.Games.route
+                    else -> currentRoute
+                }
                 DuoBottomNavigation(
-                    currentRoute = currentRoute,
+                    currentRoute = selectedBottomRoute,
                     onNavigate = { route ->
                         navController.navigate(route) {
                             popUpTo(navController.graph.findStartDestination().id) {
@@ -103,7 +119,56 @@ fun TraductorNavHost(
             }
 
             composable(Route.Games.route) {
-                GamesScreen()
+                GamesScreen(
+                    onNavigateToGame = { gameRoute ->
+                        navController.navigate(gameRoute)
+                    },
+                    onNavigateToTrainer = {
+                        navController.navigate(Route.Trainer.route)
+                    }
+                )
+            }
+
+            composable(Route.GameGuess.route) {
+                GuessGameScreen(
+                    onNavigateBack = {
+                        navController.popBackStack()
+                    },
+                    onNavigateToTrainer = {
+                        navController.navigate(Route.Trainer.route)
+                    }
+                )
+            }
+
+            composable(Route.GameMemory.route) {
+                MemoryGameScreen(
+                    onNavigateBack = {
+                        navController.popBackStack()
+                    },
+                    onNavigateToTrainer = {
+                        navController.navigate(Route.Trainer.route)
+                    }
+                )
+            }
+
+            composable(Route.GameSpeed.route) {
+                SpeedGameScreen(
+                    onNavigateBack = {
+                        navController.popBackStack()
+                    },
+                    onNavigateToTrainer = {
+                        navController.navigate(Route.Trainer.route)
+                    }
+                )
+            }
+
+            composable(Route.GameChallenge.route) {
+                GamePlaceholderScreen(
+                    game = Game.Challenge,
+                    onNavigateBack = {
+                        navController.popBackStack()
+                    }
+                )
             }
 
             composable(Route.Stats.route) {
@@ -116,7 +181,11 @@ fun TraductorNavHost(
 
             // Módulos Especializados (sin BottomBar)
             composable(Route.Translator.route) {
-                TranslatorScreen()
+                TranslatorScreen(
+                    onNavigateBack = {
+                        navController.popBackStack()
+                    }
+                )
             }
 
             composable(Route.Trainer.route) {

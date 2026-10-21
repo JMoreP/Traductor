@@ -2,9 +2,14 @@ package com.example.traductorlsv
 
 import android.content.Context
 import android.util.Log
+import com.example.traductorlsv.core.data.local.TraductorDatabase
+import com.example.traductorlsv.core.data.local.entities.SignSampleEntity
 import com.google.mediapipe.tasks.components.containers.NormalizedLandmark
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.runBlocking
 import org.json.JSONArray
-import org.json.JSONObject
 import java.io.File
 import kotlin.math.min
 import kotlin.math.pow
@@ -18,7 +23,9 @@ data class GestureSample(
 
 class GestureClassifier(private val context: Context) {
     private val dataset = mutableListOf<GestureSample>()
-    private val datasetFile = File(context.filesDir, "dtw_dataset.json") // Cambiamos el archivo para evitar crashes con datos viejos
+    private val datasetFile = File(context.filesDir, "dtw_dataset.json")
+    private val datasetBackupFile = File(context.filesDir, "dtw_dataset.json.bak")
+    private val signSampleDao = TraductorDatabase.getInstance(context).signSampleDao()
 
     init {
         loadDataset()
@@ -59,15 +66,24 @@ class GestureClassifier(private val context: Context) {
     }
 
     /**
-     * Guarda una nueva seña en el dataset (Modo Entrenamiento)
-     * Ahora recibe una lista de listas de landmarks (video de 1 segundo)
+     * Guarda una nueva seña en el dataset (Modo Entrenamiento).
+     * Mantiene la caché en memoria y la persiste en Room de forma asíncrona.
      */
     fun addSampleSequence(label: String, sequence: List<List<NormalizedLandmark>>) {
         val normalizedSeq = sequence.mapNotNull { normalizeLandmarks(it) }
         if (normalizedSeq.isEmpty()) return
         
         dataset.add(GestureSample(label, normalizedSeq))
-        saveDataset()
+        val sequenceJson = serializeSequence(normalizedSeq)
+
+        CoroutineScope(Dispatchers.IO).launch {
+            signSampleDao.insert(
+                SignSampleEntity(
+                    label = label,
+                    sequenceJson = sequenceJson
+                )
+            )
+        }
     }
 
     /**
@@ -137,45 +153,64 @@ class GestureClassifier(private val context: Context) {
         return sqrt(sum)
     }
 
-    private fun saveDataset() {
-        try {
-            val jsonArray = JSONArray()
-            for (sample in dataset) {
-                val jsonObj = JSONObject()
-                jsonObj.put("label", sample.label)
-                
-                val sequenceArray = JSONArray()
-                for (frame in sample.sequence) {
-                    val frameArray = JSONArray()
-                    for (f in frame) {
-                        frameArray.put(f.toDouble())
-                    }
-                    sequenceArray.put(frameArray)
-                }
-                jsonObj.put("sequence", sequenceArray)
-                
-                jsonArray.put(jsonObj)
+    private fun serializeSequence(sequence: List<FloatArray>): String {
+        val jsonArray = JSONArray()
+        for (frame in sequence) {
+            val frameArray = JSONArray()
+            for (f in frame) {
+                frameArray.put(f.toDouble())
             }
-            datasetFile.writeText(jsonArray.toString())
-            Log.d("KNN_DTW", "Dataset guardado con ${dataset.size} secuencias")
-        } catch (e: Exception) {
-            Log.e("KNN_DTW", "Error guardando dataset", e)
+            jsonArray.put(frameArray)
         }
+        return jsonArray.toString()
+    }
+
+    private fun deserializeSequence(jsonString: String): List<FloatArray> {
+        val jsonArray = JSONArray(jsonString)
+        val sequence = ArrayList<FloatArray>(jsonArray.length())
+        for (j in 0 until jsonArray.length()) {
+            val frameArray = jsonArray.getJSONArray(j)
+            val frame = FloatArray(frameArray.length())
+            for (k in 0 until frameArray.length()) {
+                frame[k] = frameArray.getDouble(k).toFloat()
+            }
+            sequence.add(frame)
+        }
+        return sequence
     }
 
     private fun loadDataset() {
-        if (!datasetFile.exists()) return
+        try {
+            runBlocking(Dispatchers.IO) {
+                val dbSamples = signSampleDao.getAll()
+                if (dbSamples.isNotEmpty()) {
+                    dataset.clear()
+                    for (entity in dbSamples) {
+                        val seq = deserializeSequence(entity.sequenceJson)
+                        dataset.add(GestureSample(entity.label, seq))
+                    }
+                    Log.d("KNN_DTW", "Dataset cargado desde Room con ${dataset.size} secuencias")
+                } else if (datasetFile.exists()) {
+                    migrateJsonToRoom()
+                }
+            }
+        } catch (e: Exception) {
+            Log.e("KNN_DTW", "Error inicializando dataset desde Room", e)
+        }
+    }
 
+    private suspend fun migrateJsonToRoom() {
         try {
             val jsonString = datasetFile.readText()
             val jsonArray = JSONArray(jsonString)
-            
             dataset.clear()
+            val entitiesToInsert = mutableListOf<SignSampleEntity>()
+
             for (i in 0 until jsonArray.length()) {
                 val jsonObj = jsonArray.getJSONObject(i)
                 val label = jsonObj.getString("label")
                 val sequenceArray = jsonObj.getJSONArray("sequence")
-                
+
                 val sequence = mutableListOf<FloatArray>()
                 for (j in 0 until sequenceArray.length()) {
                     val frameArray = sequenceArray.getJSONArray(j)
@@ -185,12 +220,27 @@ class GestureClassifier(private val context: Context) {
                     }
                     sequence.add(frame)
                 }
-                
+
                 dataset.add(GestureSample(label, sequence))
+                entitiesToInsert.add(
+                    SignSampleEntity(
+                        label = label,
+                        sequenceJson = serializeSequence(sequence)
+                    )
+                )
             }
-            Log.d("KNN_DTW", "Dataset cargado con ${dataset.size} secuencias")
+
+            if (entitiesToInsert.isNotEmpty()) {
+                signSampleDao.insertAll(entitiesToInsert)
+                Log.d("KNN_DTW", "Migradas ${entitiesToInsert.size} secuencias de JSON a Room")
+            }
+
+            // Realizar backup de seguridad del archivo JSON y eliminar el original
+            datasetFile.copyTo(datasetBackupFile, overwrite = true)
+            datasetFile.delete()
+            Log.d("KNN_DTW", "dtw_dataset.json respaldado a dtw_dataset.json.bak")
         } catch (e: Exception) {
-            Log.e("KNN_DTW", "Error cargando dataset", e)
+            Log.e("KNN_DTW", "Error migrando JSON a Room", e)
         }
     }
 
@@ -198,6 +248,9 @@ class GestureClassifier(private val context: Context) {
     
     fun clearDataset() {
         dataset.clear()
+        CoroutineScope(Dispatchers.IO).launch {
+            signSampleDao.deleteAll()
+        }
         if (datasetFile.exists()) {
             datasetFile.delete()
         }
@@ -206,9 +259,23 @@ class GestureClassifier(private val context: Context) {
     fun deleteLabel(label: String): Int {
         val initialSize = dataset.size
         dataset.removeAll { it.label == label }
-        if (dataset.size < initialSize) {
-            saveDataset()
+        val deletedCount = initialSize - dataset.size
+        if (deletedCount > 0) {
+            CoroutineScope(Dispatchers.IO).launch {
+                signSampleDao.deleteByLabel(label)
+            }
         }
-        return initialSize - dataset.size
+        return deletedCount
+    }
+
+    /**
+     * Retorna la lista de etiquetas únicas registradas junto con su conteo de muestras.
+     */
+    fun getSignsWithCount(): List<Pair<String, Int>> {
+        return dataset.groupingBy { it.label }
+            .eachCount()
+            .toList()
+            .sortedBy { it.first }
     }
 }
+

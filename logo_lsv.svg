@@ -1,0 +1,20 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" width="128" height="128">
+  <defs>
+    <!-- Sombra suave para efecto Duolingo -->
+    <filter id="duoShadow" x="-10%" y="-10%" width="120%" height="130%" filterUnits="userSpaceOnUse">
+      <feDropShadow dx="0" dy="6" stdDeviation="0" flood-color="#46A302" />
+      <feDropShadow dx="0" dy="8" stdDeviation="4" flood-color="#000000" flood-opacity="0.15" />
+    </filter>
+  </defs>
+
+  <!-- Base redonda verde Duolingo con relieve 3D -->
+  <rect x="8" y="8" width="112" height="112" rx="32" fill="#58CC02" filter="url(#duoShadow)" />
+
+  <!-- Borde interior de brillo superior -->
+  <rect x="12" y="12" width="104" height="40" rx="26" fill="#FFFFFF" opacity="0.12" />
+
+  <!-- Isotipo de Lengua de Señas (SignLanguage) escalado a centro (viewport 24x24 -> 68x68 centrado en 128x128) -->
+  <g transform="translate(30, 30) scale(2.833)">
+    <path fill="#FFFFFF" d="M 12.49 13.0 l -0.93 -1.86 c -0.37 -0.74, -0.07 -1.64, 0.67 -2.01 L 12.49 9.0 l 5.73 5.46 c 0.5 0.47, 0.78 1.13, 0.78 1.81 v 5.23 c 0.0 1.38, -1.12 2.5, -2.5 2.5 h -11.0 c -0.55 0.0, -1.0 -0.45, -1.0 -1.0 c 0.0 -0.55, 0.45 -1.0, 1.0 -1.0 H 10.0 v -1.0 H 4.0 c -0.55 0.0, -1.0 -0.45, -1.0 -1.0 c 0.0 -0.55, 0.45 -1.0, 1.0 -1.0 h 6.0 v -1.0 H 3.0 c -0.55 0.0, -1.0 -0.45, -1.0 -1.0 c 0.0 -0.55, 0.45 -1.0, 1.0 -1.0 h 7.0 v -1.0 H 4.5 c -0.55 0.0, -1.0 -0.45, -1.0 -1.0 c 0.0 -0.55, 0.45 -1.0, 1.0 -1.0 H 12.49 Z M 11.78 7.12 c -0.84 0.4, -1.17 0.62, -1.63 1.19 l -2.7 -2.85 c -0.38 -0.4, -0.36 -1.03, 0.04 -1.41 c 0.4 -0.38, 1.03 -0.36, 1.41 0.04 L 11.78 7.12 Z M 9.64 9.21 C 9.41 9.76, 9.35 10.45, 9.44 11.0 H 8.58 L 6.31 8.61 C 5.93 8.21, 5.94 7.58, 6.35 7.2 c 0.4 -0.38, 1.03 -0.36, 1.41 0.04 L 9.64 9.21 Z M 20.33 13.91 l 0.88 -0.83 c 0.5 -0.47, 0.79 -1.13, 0.79 -1.82 V 3.35 l -0.27 -0.1 c -0.78 -0.28, -1.64 0.12, -1.92 0.9 L 19.1 6.11 l -5.5 -5.8 c -0.38 -0.4, -1.01 -0.42, -1.41 -0.04 c -0.4 0.38, -0.42 1.01, -0.04 1.41 l 3.79 3.99 l -0.73 0.69 l -4.82 -5.08 c -0.38 -0.4, -1.01 -0.42, -1.41 -0.04 c -0.4 0.38, -0.42 1.01, -0.04 1.41 l 3.78 3.98 L 15.38 9.0 l 3.61 3.43 l 0.61 0.58 C 19.89 13.28, 20.13 13.58, 20.33 13.91 Z" />
+  </g>
+</svg>

@@ -26,6 +26,9 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
+import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.traductorlsv.ui.components.DuoButton
 import com.example.traductorlsv.ui.components.DuoCard
 import com.example.traductorlsv.ui.components.DuoIllustration
@@ -37,8 +40,10 @@ fun HomeScreen(
     onNavigateToTranslator: () -> Unit,
     onNavigateToTrainer: () -> Unit,
     onNavigateToGames: () -> Unit,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    viewModel: HomeViewModel = viewModel()
 ) {
+    val uiState by viewModel.uiState.collectAsState()
     val scrollState = rememberScrollState()
 
     Column(
@@ -92,7 +97,7 @@ fun HomeScreen(
                         modifier = Modifier.size(18.dp)
                     )
                     Text(
-                        text = "1 DÍA",
+                        text = if (uiState.streakDays == 1) "1 DÍA" else "${uiState.streakDays} DÍAS",
                         fontSize = 13.sp,
                         fontWeight = FontWeight.Black,
                         color = DuoOrange
@@ -126,7 +131,7 @@ fun HomeScreen(
                         color = DuoTextBlack
                     )
                     Text(
-                        text = "0 / 5 señas",
+                        text = "${uiState.todayProgress} / ${uiState.dailyGoal} señas",
                         fontSize = 13.sp,
                         fontWeight = FontWeight.Bold,
                         color = DuoTextGray
@@ -135,8 +140,12 @@ fun HomeScreen(
 
                 Spacer(modifier = Modifier.height(10.dp))
 
+                val safeProgress = if (uiState.dailyGoal > 0) {
+                    (uiState.todayProgress.toFloat() / uiState.dailyGoal.toFloat()).coerceIn(0f, 1f)
+                } else 0f
+
                 DuoProgressBar(
-                    progress = 0f / 5f,
+                    progress = safeProgress,
                     height = 14.dp,
                     progressColor = DuoGreen,
                     trackColor = DuoBorder,

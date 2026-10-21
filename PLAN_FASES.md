@@ -373,9 +373,9 @@ pantalla con mejor UX.
 - Navegación desde el hub a placeholders de cada juego.
 
 **Criterios de aceptación**:
-- [ ] El hub carga sin errores.
-- [ ] Cada tarjeta navega a su pantalla (aunque sea placeholder).
-- [ ] El estilo es consistente con el resto (Duolingo).
+- [x] El hub carga sin errores.
+- [x] Cada tarjeta navega a su pantalla (aunque sea placeholder).
+- [x] El estilo es consistente con el resto (Duolingo).
 
 ---
 
@@ -399,10 +399,10 @@ usuario debe hacerla frente a la cámara y el sistema la valida con KNN/DTW.
 - `core/domain/usecase/PlayGuessRoundUseCase.kt`.
 
 **Criterios de aceptación**:
-- [ ] El juego usa **el dataset del usuario** (no uno hardcodeado).
-- [ ] Detecta correctamente cuando el usuario hace la seña esperada.
-- [ ] Al terminar 10 rondas muestra resumen (aciertos/errores/tiempo).
-- [ ] El progreso se guarda (aunque estadísticas completas llegan en Fase 9).
+- [x] El juego usa **el dataset del usuario** (no uno hardcodeado).
+- [x] Detecta correctamente cuando el usuario hace la seña esperada.
+- [x] Al terminar 10 rondas muestra resumen (aciertos/errores/tiempo).
+- [x] El progreso se guarda (aunque estadísticas completas llegan en Fase 9).
 
 **Riesgos**:
 - Umbral de confianza DTW: puede requerir calibración. Documentar parámetros.
@@ -429,9 +429,9 @@ usuario debe hacerla frente a la cámara y el sistema la valida con KNN/DTW.
 - Al terminar, muestra puntaje y "mejor puntaje histórico".
 
 **Criterios de aceptación**:
-- [ ] Ambos juegos reutilizan la misma infraestructura del juego Adivinanza.
-- [ ] El mejor puntaje se persiste.
-- [ ] El juego de velocidad tiene animación de cuenta regresiva.
+- [x] Ambos juegos reutilizan la misma infraestructura del juego Adivinanza.
+- [x] El mejor puntaje se persiste.
+- [x] El juego de velocidad tiene animación de cuenta regresiva.
 
 ---
 
@@ -455,10 +455,10 @@ usuario debe hacerla frente a la cámara y el sistema la valida con KNN/DTW.
 - Registrar eventos desde Traductor y Juegos.
 
 **Criterios de aceptación**:
-- [ ] El JSON actual se importa automáticamente la primera vez.
-- [ ] Los juegos guardan aciertos/errores.
-- [ ] La racha (streak) se actualiza al abrir la app.
-- [ ] No hay pérdida de datos al actualizar la app.
+- [x] El JSON actual se importa automáticamente la primera vez.
+- [x] Los juegos guardan aciertos/errores.
+- [x] La racha (streak) se actualiza al abrir la app.
+- [x] No hay pérdida de datos al actualizar la app.
 
 **Riesgos**:
 - Migración de datos: hacer backup del JSON antes de borrarlo.
