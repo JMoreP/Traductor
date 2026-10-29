@@ -289,4 +289,91 @@ class NavigationTest {
         assertEquals(3, state.todayProgress)
         assertEquals(5, state.dailyGoal)
     }
+
+    @Test
+    fun verify_stats_ui_state() {
+        val days = listOf(
+            com.example.traductorlsv.ui.screens.stats.DayActivity("Lun", 5, false),
+            com.example.traductorlsv.ui.screens.stats.DayActivity("Mar", 12, true)
+        )
+        val state = com.example.traductorlsv.ui.screens.stats.StatsUiState(
+            currentStreak = 5,
+            longestStreak = 10,
+            totalSignsLearned = 8,
+            totalGamesPlayed = 15,
+            last7DaysActivity = days,
+            maxWeeklyCount = 12
+        )
+        assertEquals(5, state.currentStreak)
+        assertEquals(10, state.longestStreak)
+        assertEquals(8, state.totalSignsLearned)
+        assertEquals(15, state.totalGamesPlayed)
+        assertEquals(2, state.last7DaysActivity.size)
+        assertEquals(12, state.maxWeeklyCount)
+    }
+
+    @Test
+    fun verify_profile_xp_and_level_calculation() {
+        val translations = 3
+        val games = 1
+        val streak = 2
+        val xp = (translations * 10) + (games * 50) + (streak * 20) // 30 + 50 + 40 = 120
+        val level = (xp / 100) + 1 // 2
+        val currentLevelXp = xp % 100 // 20
+        val progress = currentLevelXp / 100f // 0.2f
+
+        val state = com.example.traductorlsv.ui.screens.profile.ProfileUiState(
+            userName = "Juan",
+            xp = xp,
+            level = level,
+            currentLevelXp = currentLevelXp,
+            levelProgress = progress,
+            totalTranslations = translations,
+            totalGamesPlayed = games
+        )
+
+        assertEquals("Juan", state.userName)
+        assertEquals(120, state.xp)
+        assertEquals(2, state.level)
+        assertEquals(20, state.currentLevelXp)
+        assertEquals(0.2f, state.levelProgress, 0.001f)
+    }
+
+    @Test
+    fun verify_sign_sample_entity_source_defaults_and_constants() {
+        assertEquals("BUILTIN", com.example.traductorlsv.core.data.local.entities.SignSampleEntity.SOURCE_BUILTIN)
+        assertEquals("USER", com.example.traductorlsv.core.data.local.entities.SignSampleEntity.SOURCE_USER)
+
+        val defaultEntity = com.example.traductorlsv.core.data.local.entities.SignSampleEntity(
+            label = "A",
+            sequenceJson = "[]"
+        )
+        assertEquals(com.example.traductorlsv.core.data.local.entities.SignSampleEntity.SOURCE_USER, defaultEntity.source)
+
+        val builtinEntity = com.example.traductorlsv.core.data.local.entities.SignSampleEntity(
+            label = "B",
+            sequenceJson = "[]",
+            source = com.example.traductorlsv.core.data.local.entities.SignSampleEntity.SOURCE_BUILTIN
+        )
+        assertEquals(com.example.traductorlsv.core.data.local.entities.SignSampleEntity.SOURCE_BUILTIN, builtinEntity.source)
+    }
+
+    @Test
+    fun verify_gesture_sample_source_and_migration_versions() {
+        val defaultSample = GestureSample(
+            label = "HOLA",
+            sequence = emptyList()
+        )
+        assertEquals("USER", defaultSample.source)
+
+        val builtinSample = GestureSample(
+            label = "ADIOS",
+            sequence = emptyList(),
+            source = "BUILTIN"
+        )
+        assertEquals("BUILTIN", builtinSample.source)
+
+        assertEquals(1, com.example.traductorlsv.core.data.local.TraductorDatabase.MIGRATION_1_2.startVersion)
+        assertEquals(2, com.example.traductorlsv.core.data.local.TraductorDatabase.MIGRATION_1_2.endVersion)
+    }
 }

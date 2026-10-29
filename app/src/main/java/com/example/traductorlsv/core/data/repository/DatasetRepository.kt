@@ -56,6 +56,12 @@ class DatasetRepository private constructor(
         return deleted
     }
 
+    @Synchronized
+    fun clearDataset() {
+        classifier.clearDataset()
+        refresh()
+    }
+
     fun classifySequence(seq: List<List<NormalizedLandmark>>, k: Int = 3): String {
         return classifier.classifySequence(seq, k)
     }

@@ -29,4 +29,28 @@ interface SignSampleDao {
 
     @Query("SELECT COUNT(*) FROM sign_samples")
     fun getCountFlow(): Flow<Int>
+
+    @Query("SELECT COUNT(DISTINCT label) FROM sign_samples")
+    fun getDistinctSignsCountFlow(): Flow<Int>
+
+    @Query("SELECT COUNT(DISTINCT label) FROM sign_samples")
+    suspend fun getDistinctSignsCount(): Int
+
+    @Query("SELECT COUNT(*) FROM sign_samples WHERE source = 'BUILTIN'")
+    suspend fun getBuiltinCount(): Int
+
+    @Query("SELECT COUNT(*) FROM sign_samples WHERE source = 'USER'")
+    suspend fun getUserCount(): Int
+
+    @Query("SELECT * FROM sign_samples WHERE source = :source ORDER BY id ASC")
+    suspend fun getBySource(source: String): List<SignSampleEntity>
+
+    @Query("SELECT * FROM sign_samples WHERE source = :source ORDER BY id ASC")
+    fun getBySourceFlow(source: String): Flow<List<SignSampleEntity>>
+
+    @Query("DELETE FROM sign_samples WHERE source = 'USER'")
+    suspend fun deleteUserSamples(): Int
+
+    @Query("DELETE FROM sign_samples WHERE label = :label AND source = 'USER'")
+    suspend fun deleteUserLabel(label: String): Int
 }

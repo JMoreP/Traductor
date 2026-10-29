@@ -14,6 +14,8 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 
+import androidx.room.migration.Migration
+
 /**
  * Base de datos principal de Room para persistencia estructurada de la app TraductorLSV.
  */
@@ -25,7 +27,7 @@ import kotlinx.coroutines.launch
         StreakEntity::class,
         AchievementEntity::class
     ],
-    version = 1,
+    version = 2,
     exportSchema = false
 )
 abstract class TraductorDatabase : RoomDatabase() {
@@ -39,6 +41,12 @@ abstract class TraductorDatabase : RoomDatabase() {
         @Volatile
         private var instance: TraductorDatabase? = null
 
+        val MIGRATION_1_2 = object : Migration(1, 2) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("ALTER TABLE sign_samples ADD COLUMN source TEXT NOT NULL DEFAULT 'USER'")
+            }
+        }
+
         fun getInstance(context: Context): TraductorDatabase {
             return instance ?: synchronized(this) {
                 instance ?: Room.databaseBuilder(
@@ -46,6 +54,7 @@ abstract class TraductorDatabase : RoomDatabase() {
                     TraductorDatabase::class.java,
                     "traductor_lsv.db"
                 )
+                .addMigrations(MIGRATION_1_2)
                 .addCallback(object : Callback() {
                     override fun onCreate(db: SupportSQLiteDatabase) {
                         super.onCreate(db)

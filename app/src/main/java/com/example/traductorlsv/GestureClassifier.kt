@@ -15,10 +15,11 @@ import kotlin.math.min
 import kotlin.math.pow
 import kotlin.math.sqrt
 
-// Ahora almacenamos una SECUENCIA de fotogramas, no solo uno.
+// Ahora almacenamos una SECUENCIA de fotogramas, no solo uno, junto con su origen (BUILTIN o USER).
 data class GestureSample(
     val label: String,
-    val sequence: List<FloatArray>
+    val sequence: List<FloatArray>,
+    val source: String = SignSampleEntity.SOURCE_USER
 )
 
 class GestureClassifier(private val context: Context) {
@@ -69,18 +70,23 @@ class GestureClassifier(private val context: Context) {
      * Guarda una nueva seña en el dataset (Modo Entrenamiento).
      * Mantiene la caché en memoria y la persiste en Room de forma asíncrona.
      */
-    fun addSampleSequence(label: String, sequence: List<List<NormalizedLandmark>>) {
+    fun addSampleSequence(
+        label: String, 
+        sequence: List<List<NormalizedLandmark>>,
+        source: String = SignSampleEntity.SOURCE_USER
+    ) {
         val normalizedSeq = sequence.mapNotNull { normalizeLandmarks(it) }
         if (normalizedSeq.isEmpty()) return
         
-        dataset.add(GestureSample(label, normalizedSeq))
+        dataset.add(GestureSample(label, normalizedSeq, source))
         val sequenceJson = serializeSequence(normalizedSeq)
 
         CoroutineScope(Dispatchers.IO).launch {
             signSampleDao.insert(
                 SignSampleEntity(
                     label = label,
-                    sequenceJson = sequenceJson
+                    sequenceJson = sequenceJson,
+                    source = source
                 )
             )
         }
@@ -182,20 +188,113 @@ class GestureClassifier(private val context: Context) {
     private fun loadDataset() {
         try {
             runBlocking(Dispatchers.IO) {
-                val dbSamples = signSampleDao.getAll()
-                if (dbSamples.isNotEmpty()) {
-                    dataset.clear()
-                    for (entity in dbSamples) {
-                        val seq = deserializeSequence(entity.sequenceJson)
-                        dataset.add(GestureSample(entity.label, seq))
-                    }
-                    Log.d("KNN_DTW", "Dataset cargado desde Room con ${dataset.size} secuencias")
-                } else if (datasetFile.exists()) {
+                // 1. Migración legacy si existe dtw_dataset.json y Room está completamente vacío
+                if (datasetFile.exists() && signSampleDao.getCount() == 0) {
                     migrateJsonToRoom()
                 }
+
+                // 2. Importar señas predeterminadas (BUILTIN) desde assets si aún no existen
+                importPreloadedDatasetIfNeeded()
+
+                // 3. Cargar todas las muestras (BUILTIN + USER) a la caché en memoria para clasificación a 60 FPS
+                val dbSamples = signSampleDao.getAll()
+                dataset.clear()
+                for (entity in dbSamples) {
+                    try {
+                        val seq = deserializeSequence(entity.sequenceJson)
+                        dataset.add(GestureSample(entity.label, seq, entity.source))
+                    } catch (e: Exception) {
+                        Log.w("KNN_DTW", "Error deserializando muestra de seña ID ${entity.id} (${entity.label})", e)
+                    }
+                }
+                val builtinCount = dataset.count { it.source == SignSampleEntity.SOURCE_BUILTIN }
+                val userCount = dataset.count { it.source == SignSampleEntity.SOURCE_USER }
+                Log.d("KNN_DTW", "Dataset cargado en memoria: ${dataset.size} secuencias ($builtinCount BUILTIN, $userCount USER)")
             }
         } catch (e: Exception) {
             Log.e("KNN_DTW", "Error inicializando dataset desde Room", e)
+        }
+    }
+
+    /**
+     * Importa automáticamente las señas BUILTIN desde assets/preloaded_dataset.json.
+     * Operación idempotente y tolerante a fallos: no crashea si el archivo no existe, está vacío o corrupto.
+     */
+    private suspend fun importPreloadedDatasetIfNeeded() {
+        try {
+            val builtinCount = signSampleDao.getBuiltinCount()
+            if (builtinCount > 0) {
+                Log.d("KNN_DTW", "Dataset BUILTIN ya existe en Room ($builtinCount muestras). Omitiendo importación.")
+                return
+            }
+
+            val assetManager = context.assets
+            val fileName = "preloaded_dataset.json"
+
+            val assetsList = assetManager.list("") ?: emptyArray()
+            if (!assetsList.contains(fileName)) {
+                Log.w("KNN_DTW", "No se encontró el archivo $fileName en assets.")
+                return
+            }
+
+            val jsonString = assetManager.open(fileName).bufferedReader().use { it.readText() }
+            if (jsonString.isBlank()) {
+                Log.w("KNN_DTW", "El archivo $fileName en assets está vacío.")
+                return
+            }
+
+            val jsonArray = JSONArray(jsonString)
+            if (jsonArray.length() == 0) {
+                Log.d("KNN_DTW", "El archivo $fileName en assets contiene un array vacío [].")
+                return
+            }
+
+            val entitiesToInsert = mutableListOf<SignSampleEntity>()
+
+            for (i in 0 until jsonArray.length()) {
+                val jsonObj = jsonArray.optJSONObject(i) ?: continue
+                val label = jsonObj.optString("label", "").trim()
+                if (label.isEmpty()) continue
+
+                val sequenceJson = when {
+                    jsonObj.has("sequenceJson") -> {
+                        jsonObj.getString("sequenceJson")
+                    }
+                    jsonObj.has("sequence") -> {
+                        val sequenceArray = jsonObj.getJSONArray("sequence")
+                        val sequence = mutableListOf<FloatArray>()
+                        for (j in 0 until sequenceArray.length()) {
+                            val frameArray = sequenceArray.getJSONArray(j)
+                            val frame = FloatArray(frameArray.length())
+                            for (k in 0 until frameArray.length()) {
+                                frame[k] = frameArray.getDouble(k).toFloat()
+                            }
+                            sequence.add(frame)
+                        }
+                        serializeSequence(sequence)
+                    }
+                    else -> null
+                }
+
+                if (sequenceJson != null && sequenceJson.isNotBlank()) {
+                    entitiesToInsert.add(
+                        SignSampleEntity(
+                            label = label,
+                            sequenceJson = sequenceJson,
+                            source = SignSampleEntity.SOURCE_BUILTIN
+                        )
+                    )
+                }
+            }
+
+            if (entitiesToInsert.isNotEmpty()) {
+                signSampleDao.insertAll(entitiesToInsert)
+                Log.i("KNN_DTW", "Se importaron exitosamente ${entitiesToInsert.size} muestras BUILTIN a Room desde $fileName.")
+            } else {
+                Log.w("KNN_DTW", "No se encontraron muestras válidas para importar en $fileName.")
+            }
+        } catch (e: Exception) {
+            Log.w("KNN_DTW", "Error durante la importación de preloaded_dataset.json (tolerante a fallos)", e)
         }
     }
 
@@ -221,18 +320,19 @@ class GestureClassifier(private val context: Context) {
                     sequence.add(frame)
                 }
 
-                dataset.add(GestureSample(label, sequence))
+                dataset.add(GestureSample(label, sequence, SignSampleEntity.SOURCE_USER))
                 entitiesToInsert.add(
                     SignSampleEntity(
                         label = label,
-                        sequenceJson = serializeSequence(sequence)
+                        sequenceJson = serializeSequence(sequence),
+                        source = SignSampleEntity.SOURCE_USER
                     )
                 )
             }
 
             if (entitiesToInsert.isNotEmpty()) {
                 signSampleDao.insertAll(entitiesToInsert)
-                Log.d("KNN_DTW", "Migradas ${entitiesToInsert.size} secuencias de JSON a Room")
+                Log.d("KNN_DTW", "Migradas ${entitiesToInsert.size} secuencias de JSON a Room como USER")
             }
 
             // Realizar backup de seguridad del archivo JSON y eliminar el original
@@ -245,6 +345,8 @@ class GestureClassifier(private val context: Context) {
     }
 
     fun getDatasetSize(): Int = dataset.size
+    fun getBuiltinCount(): Int = dataset.count { it.source == SignSampleEntity.SOURCE_BUILTIN }
+    fun getUserCount(): Int = dataset.count { it.source == SignSampleEntity.SOURCE_USER }
     
     fun clearDataset() {
         dataset.clear()
@@ -269,10 +371,32 @@ class GestureClassifier(private val context: Context) {
     }
 
     /**
-     * Retorna la lista de etiquetas únicas registradas junto con su conteo de muestras.
+     * Retorna la lista de etiquetas únicas registradas junto con su conteo de muestras (combinando BUILTIN y USER).
      */
     fun getSignsWithCount(): List<Pair<String, Int>> {
         return dataset.groupingBy { it.label }
+            .eachCount()
+            .toList()
+            .sortedBy { it.first }
+    }
+
+    /**
+     * Retorna las señas BUILTIN únicas con su conteo.
+     */
+    fun getBuiltinSignsWithCount(): List<Pair<String, Int>> {
+        return dataset.filter { it.source == SignSampleEntity.SOURCE_BUILTIN }
+            .groupingBy { it.label }
+            .eachCount()
+            .toList()
+            .sortedBy { it.first }
+    }
+
+    /**
+     * Retorna las señas entrenadas por el usuario (USER) con su conteo.
+     */
+    fun getUserSignsWithCount(): List<Pair<String, Int>> {
+        return dataset.filter { it.source == SignSampleEntity.SOURCE_USER }
+            .groupingBy { it.label }
             .eachCount()
             .toList()
             .sortedBy { it.first }

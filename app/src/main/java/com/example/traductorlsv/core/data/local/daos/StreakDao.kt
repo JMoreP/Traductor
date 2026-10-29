@@ -17,4 +17,7 @@ interface StreakDao {
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun upsertStreak(streak: StreakEntity): Long
+
+    @Query("DELETE FROM user_streak")
+    suspend fun resetStreak(): Int
 }

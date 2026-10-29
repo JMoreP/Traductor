@@ -22,6 +22,9 @@ class PreferencesManager(private val context: Context) {
         private val KEY_BEST_SCORE_GUESS = intPreferencesKey("best_score_guess")
         private val KEY_BEST_SCORE_MEMORY = intPreferencesKey("best_score_memory")
         private val KEY_BEST_SCORE_SPEED = intPreferencesKey("best_score_speed")
+        private val KEY_USER_NAME = androidx.datastore.preferences.core.stringPreferencesKey("user_name")
+        private val KEY_SOUND_ENABLED = booleanPreferencesKey("sound_enabled")
+        private val KEY_VIBRATION_ENABLED = booleanPreferencesKey("vibration_enabled")
     }
 
     /**
@@ -86,5 +89,43 @@ class PreferencesManager(private val context: Context) {
             }
         }
         return isNewRecord
+    }
+
+    val userName: Flow<String> = context.dataStore.data.map { preferences ->
+        preferences[KEY_USER_NAME] ?: "Estudiante LSV"
+    }
+
+    val soundEnabled: Flow<Boolean> = context.dataStore.data.map { preferences ->
+        preferences[KEY_SOUND_ENABLED] ?: true
+    }
+
+    val vibrationEnabled: Flow<Boolean> = context.dataStore.data.map { preferences ->
+        preferences[KEY_VIBRATION_ENABLED] ?: true
+    }
+
+    suspend fun setUserName(name: String) {
+        context.dataStore.edit { preferences ->
+            preferences[KEY_USER_NAME] = name
+        }
+    }
+
+    suspend fun setSoundEnabled(enabled: Boolean) {
+        context.dataStore.edit { preferences ->
+            preferences[KEY_SOUND_ENABLED] = enabled
+        }
+    }
+
+    suspend fun setVibrationEnabled(enabled: Boolean) {
+        context.dataStore.edit { preferences ->
+            preferences[KEY_VIBRATION_ENABLED] = enabled
+        }
+    }
+
+    suspend fun resetBestScores() {
+        context.dataStore.edit { preferences ->
+            preferences[KEY_BEST_SCORE_GUESS] = 0
+            preferences[KEY_BEST_SCORE_MEMORY] = 0
+            preferences[KEY_BEST_SCORE_SPEED] = 0
+        }
     }
 }

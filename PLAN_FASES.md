@@ -489,9 +489,9 @@ usuario debe hacerla frente a la cámara y el sistema la valida con KNN/DTW.
   - Botón "Reentrenar dataset" (borra todo).
 
 **Criterios de aceptación**:
-- [ ] Los gráficos usan `Canvas` de Compose (sin librerías externas pesadas).
-- [ ] Los ajustes persisten en DataStore.
-- [ ] Reiniciar progreso no borra el dataset (son cosas distintas).
+- [x] Los gráficos usan `Canvas` / layout nativo de Compose (sin librerías externas pesadas).
+- [x] Los ajustes persisten en DataStore.
+- [x] Reiniciar progreso no borra el dataset (son cosas distintas).
 
 ---
 

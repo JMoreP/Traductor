@@ -24,4 +24,7 @@ interface AchievementDao {
 
     @Query("UPDATE achievements SET unlockedAt = :timestamp WHERE id = :id AND unlockedAt IS NULL")
     suspend fun unlock(id: String, timestamp: Long = System.currentTimeMillis()): Int
+
+    @Query("UPDATE achievements SET unlockedAt = NULL")
+    suspend fun resetAchievements(): Int
 }

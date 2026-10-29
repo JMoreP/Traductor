@@ -32,4 +32,16 @@ interface ActivityDao {
 
     @Query("SELECT COUNT(*) FROM translation_activities")
     fun getTotalTranslationsCount(): Flow<Int>
+
+    @Query("DELETE FROM game_sessions")
+    suspend fun deleteAllGameSessions(): Int
+
+    @Query("DELETE FROM translation_activities")
+    suspend fun deleteAllTranslations(): Int
+
+    @Query("SELECT * FROM game_sessions WHERE timestamp >= :sinceTimestamp")
+    fun getGameSessionsSinceFlow(sinceTimestamp: Long): Flow<List<GameSessionEntity>>
+
+    @Query("SELECT * FROM translation_activities WHERE timestamp >= :sinceTimestamp")
+    fun getTranslationsSinceFlow(sinceTimestamp: Long): Flow<List<TranslationActivityEntity>>
 }
