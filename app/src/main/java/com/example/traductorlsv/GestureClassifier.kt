@@ -4,6 +4,7 @@ import android.content.Context
 import android.util.Log
 import com.example.traductorlsv.core.data.local.TraductorDatabase
 import com.example.traductorlsv.core.data.local.entities.SignSampleEntity
+import com.example.traductorlsv.core.vision.LandmarkNormalizer
 import com.google.mediapipe.tasks.components.containers.NormalizedLandmark
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -33,37 +34,11 @@ class GestureClassifier(private val context: Context) {
     }
 
     /**
-     * Normaliza los 21 puntos de la mano para un solo fotograma.
+     * Normaliza los 21 puntos de la mano para un solo fotograma delegando en LandmarkNormalizer.
      * Invariante a traslación (la muñeca es 0,0,0) y a escala.
      */
     private fun normalizeLandmarks(landmarks: List<NormalizedLandmark>): FloatArray? {
-        if (landmarks.size != 21) return null
-
-        val features = FloatArray(63)
-        
-        val wristX = landmarks[0].x()
-        val wristY = landmarks[0].y()
-        val wristZ = landmarks[0].z()
-
-        for (i in landmarks.indices) {
-            features[i * 3] = landmarks[i].x() - wristX
-            features[i * 3 + 1] = landmarks[i].y() - wristY
-            features[i * 3 + 2] = landmarks[i].z() - wristZ
-        }
-
-        val scale = sqrt(
-            features[9 * 3].pow(2) +
-            features[9 * 3 + 1].pow(2) +
-            features[9 * 3 + 2].pow(2)
-        )
-
-        if (scale < 0.00001f) return features
-
-        for (i in features.indices) {
-            features[i] /= scale
-        }
-
-        return features
+        return LandmarkNormalizer.normalizeLandmarks(landmarks)
     }
 
     /**

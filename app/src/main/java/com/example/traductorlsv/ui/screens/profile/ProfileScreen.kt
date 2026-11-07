@@ -1,6 +1,8 @@
 package com.example.traductorlsv.ui.screens.profile
 
+import android.widget.Toast
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
@@ -23,6 +25,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -34,11 +37,15 @@ import com.example.traductorlsv.ui.theme.*
 
 @Composable
 fun ProfileScreen(
+    onNavigateToRecorder: (() -> Unit)? = null,
     modifier: Modifier = Modifier,
     viewModel: ProfileViewModel = viewModel()
 ) {
+    val context = LocalContext.current
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val scrollState = rememberScrollState()
+
+    var devClickCount by remember { mutableIntStateOf(0) }
 
     // Estados para diálogos
     var showEditNameDialog by remember { mutableStateOf(false) }
@@ -91,6 +98,40 @@ fun ProfileScreen(
                 onResetProgressClick = { showResetProgressDialog = true },
                 onClearDatasetClick = { showClearDatasetDialog = true }
             )
+
+            // Acceso oculto de desarrollador (7 toques en la versión)
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(vertical = 12.dp),
+                contentAlignment = Alignment.Center
+            ) {
+                Text(
+                    text = "v1.0.0",
+                    fontSize = 12.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = DuoTextGray.copy(alpha = 0.6f),
+                    modifier = Modifier.clickable {
+                        devClickCount++
+                        if (devClickCount in 5..6) {
+                            val remaining = 7 - devClickCount
+                            Toast.makeText(
+                                context,
+                                "Estás a $remaining toque${if (remaining > 1) "s" else ""} de ser desarrollador",
+                                Toast.LENGTH_SHORT
+                            ).show()
+                        } else if (devClickCount >= 7) {
+                            devClickCount = 0
+                            Toast.makeText(
+                                context,
+                                "¡Modo desarrollador activado!",
+                                Toast.LENGTH_SHORT
+                            ).show()
+                            onNavigateToRecorder?.invoke()
+                        }
+                    }
+                )
+            }
 
             Spacer(modifier = Modifier.height(16.dp))
         }

@@ -22,6 +22,7 @@ import com.example.traductorlsv.ui.screens.games.speed.SpeedGameScreen
 import com.example.traductorlsv.ui.screens.home.HomeScreen
 import com.example.traductorlsv.ui.screens.onboarding.OnboardingScreen
 import com.example.traductorlsv.ui.screens.profile.ProfileScreen
+import com.example.traductorlsv.ui.screens.recorder.DatasetRecorderScreen
 import com.example.traductorlsv.ui.screens.splash.SplashScreen
 import com.example.traductorlsv.ui.screens.stats.StatsScreen
 import com.example.traductorlsv.ui.screens.trainer.TrainerScreen
@@ -176,7 +177,11 @@ fun TraductorNavHost(
             }
 
             composable(Route.Profile.route) {
-                ProfileScreen()
+                ProfileScreen(
+                    onNavigateToRecorder = {
+                        navController.navigate(Route.Recorder.route)
+                    }
+                )
             }
 
             // Módulos Especializados (sin BottomBar)
@@ -190,6 +195,15 @@ fun TraductorNavHost(
 
             composable(Route.Trainer.route) {
                 TrainerScreen(
+                    onNavigateBack = {
+                        navController.popBackStack()
+                    }
+                )
+            }
+
+            // Herramienta Interna de Desarrollo (sin BottomBar)
+            composable(Route.Recorder.route) {
+                DatasetRecorderScreen(
                     onNavigateBack = {
                         navController.popBackStack()
                     }

@@ -26,4 +26,7 @@ sealed class Route(val route: String) {
     object GameMemory : Route("game_memory")
     object GameSpeed : Route("game_speed")
     object GameChallenge : Route("game_challenge")
+
+    // Herramienta Interna de Desarrollo (Fase 10.6)
+    object Recorder : Route("recorder")
 }

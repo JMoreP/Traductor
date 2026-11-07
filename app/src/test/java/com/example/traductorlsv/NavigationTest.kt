@@ -19,6 +19,7 @@ class NavigationTest {
         assertEquals("games", Route.Games.route)
         assertEquals("stats", Route.Stats.route)
         assertEquals("profile", Route.Profile.route)
+        assertEquals("recorder", Route.Recorder.route)
     }
 
     @Test
@@ -375,5 +376,35 @@ class NavigationTest {
 
         assertEquals(1, com.example.traductorlsv.core.data.local.TraductorDatabase.MIGRATION_1_2.startVersion)
         assertEquals(2, com.example.traductorlsv.core.data.local.TraductorDatabase.MIGRATION_1_2.endVersion)
+    }
+
+    @Test
+    fun verify_dataset_recorder_alphabet_specs() {
+        val alphabet = com.example.traductorlsv.ui.screens.recorder.DatasetRecorderViewModel.ALPHABET_LETTERS
+        assertEquals(27, alphabet.size)
+        assertTrue(alphabet.contains("Ñ"))
+        assertTrue(alphabet.contains("A"))
+        assertTrue(alphabet.contains("Z"))
+
+        val dynamicLetters = com.example.traductorlsv.ui.screens.recorder.DatasetRecorderViewModel.DYNAMIC_LETTERS
+        assertEquals(2, dynamicLetters.size)
+        assertTrue(dynamicLetters.contains("J"))
+        assertTrue(dynamicLetters.contains("Z"))
+
+        assertEquals(15, com.example.traductorlsv.ui.screens.recorder.DatasetRecorderViewModel.DEFAULT_SAMPLES_PER_STATIC)
+        assertEquals(12, com.example.traductorlsv.ui.screens.recorder.DatasetRecorderViewModel.DEFAULT_SAMPLES_PER_DYNAMIC)
+        assertEquals(399, com.example.traductorlsv.ui.screens.recorder.DatasetRecorderViewModel.TOTAL_DATASET_TARGET)
+        assertEquals(15, com.example.traductorlsv.ui.screens.recorder.DatasetRecorderViewModel.targetFor("A", false))
+        assertEquals(12, com.example.traductorlsv.ui.screens.recorder.DatasetRecorderViewModel.targetFor("J", true))
+        assertEquals(12, com.example.traductorlsv.ui.screens.recorder.DatasetRecorderViewModel.targetFor("Z", true))
+        assertEquals(15, com.example.traductorlsv.ui.screens.recorder.DatasetRecorderViewModel.targetFor("Ñ", false))
+        assertEquals(30, com.example.traductorlsv.ui.screens.recorder.DatasetRecorderViewModel.DYNAMIC_FRAMES_TARGET)
+    }
+
+    @Test
+    fun verify_landmark_normalizer_behavior() {
+        // Con lista vacía debe retornar null
+        val emptyResult = com.example.traductorlsv.core.vision.LandmarkNormalizer.normalizeLandmarks(emptyList())
+        assertEquals(null, emptyResult)
     }
 }
