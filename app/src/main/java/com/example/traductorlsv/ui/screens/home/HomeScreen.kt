@@ -1,317 +1,416 @@
 package com.example.traductorlsv.ui.screens.home
 
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.pager.HorizontalPager
+import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowForwardIos
+import androidx.compose.material.icons.automirrored.rounded.ArrowForwardIos
 import androidx.compose.material.icons.filled.LocalFireDepartment
-import androidx.compose.material.icons.filled.School
-import androidx.compose.material.icons.filled.SportsEsports
-import androidx.compose.material.icons.filled.Videocam
+import androidx.compose.material.icons.outlined.Notifications
+import androidx.compose.material.icons.rounded.EmojiEvents
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.remember
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.compose.runtime.collectAsState
-import androidx.compose.runtime.getValue
 import androidx.lifecycle.viewmodel.compose.viewModel
-import com.example.traductorlsv.ui.components.DuoButton
+import com.example.traductorlsv.R
 import com.example.traductorlsv.ui.components.DuoCard
-import com.example.traductorlsv.ui.components.DuoIllustration
-import com.example.traductorlsv.ui.components.DuoProgressBar
-import com.example.traductorlsv.ui.theme.*
+import com.example.traductorlsv.ui.theme.DuoBorder
+import com.example.traductorlsv.ui.theme.DuoSurface
 
+/**
+ * Pantalla Principal (HomeScreen):
+ * - Fondo con degradado vertical turquesa (#22D3F1) que degrada a gris frío suave (#EDF2F7)
+ * - Barra superior con pill de días de racha a la izquierda, título "Pasmulio" y campana
+ * - Carrusel horizontal (HorizontalPager) con tarjeta turquesa y tarjeta amarilla asomada a la derecha
+ * - Sección "Gamificación" unificada dentro de una sola tarjeta blanca contenedora
+ */
 @Composable
 fun HomeScreen(
     onNavigateToTranslator: () -> Unit,
     onNavigateToTrainer: () -> Unit,
     onNavigateToGames: () -> Unit,
+    onNavigateToStats: () -> Unit = {},
     modifier: Modifier = Modifier,
     viewModel: HomeViewModel = viewModel()
 ) {
     val uiState by viewModel.uiState.collectAsState()
     val scrollState = rememberScrollState()
+    val pagerState = rememberPagerState(pageCount = { 2 })
 
-    Column(
-        modifier = modifier
-            .fillMaxSize()
-            .background(DuoBgLight)
-            .statusBarsPadding()
-            .verticalScroll(scrollState)
-            .padding(horizontal = 20.dp, vertical = 16.dp),
-        horizontalAlignment = Alignment.CenterHorizontally
-    ) {
-        // 1. Header superior: Saludo y Chip de Racha
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(bottom = 16.dp),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Column {
-                Text(
-                    text = "¡Hola!",
-                    fontSize = 28.sp,
-                    fontWeight = FontWeight.Black,
-                    color = DuoTextBlack
-                )
-                Text(
-                    text = "¿Listo para practicar LSV hoy?",
-                    fontSize = 14.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = DuoTextGray
-                )
-            }
-
-            // Chip de Racha estilo Duolingo
-            DuoCard(
-                backgroundColor = DuoSurface,
-                borderColor = DuoBorder,
-                cornerRadius = 18.dp,
-                bottomDepth = 3.dp
-            ) {
-                Row(
-                    modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(4.dp)
-                ) {
-                    Icon(
-                        imageVector = Icons.Filled.LocalFireDepartment,
-                        contentDescription = "Racha",
-                        tint = DuoOrange,
-                        modifier = Modifier.size(18.dp)
-                    )
-                    Text(
-                        text = if (uiState.streakDays == 1) "1 DÍA" else "${uiState.streakDays} DÍAS",
-                        fontSize = 13.sp,
-                        fontWeight = FontWeight.Black,
-                        color = DuoOrange
-                    )
-                }
-            }
-        }
-
-        // 2. Tarjeta de Progreso Diario
-        DuoCard(
-            backgroundColor = DuoSurface,
-            borderColor = DuoBorder,
-            cornerRadius = 20.dp,
-            bottomDepth = 4.dp,
-            modifier = Modifier.fillMaxWidth()
-        ) {
-            Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(14.dp)
-            ) {
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Text(
-                        text = "Progreso de hoy",
-                        fontSize = 15.sp,
-                        fontWeight = FontWeight.Black,
-                        color = DuoTextBlack
-                    )
-                    Text(
-                        text = "${uiState.todayProgress} / ${uiState.dailyGoal} señas",
-                        fontSize = 13.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = DuoTextGray
-                    )
-                }
-
-                Spacer(modifier = Modifier.height(10.dp))
-
-                val safeProgress = if (uiState.dailyGoal > 0) {
-                    (uiState.todayProgress.toFloat() / uiState.dailyGoal.toFloat()).coerceIn(0f, 1f)
-                } else 0f
-
-                DuoProgressBar(
-                    progress = safeProgress,
-                    height = 14.dp,
-                    progressColor = DuoGreen,
-                    trackColor = DuoBorder,
-                    modifier = Modifier.fillMaxWidth()
-                )
-            }
-        }
-
-        Spacer(modifier = Modifier.height(20.dp))
-
-        // 3. Tarjetas Grandes de Acción
-        // Tarjeta 1: Traductor en Vivo (Destacada / Recomendada)
-        ActionDashboardCard(
-            title = "Traductor en Vivo",
-            subtitle = "Reconoce señas en tiempo real",
-            icon = Icons.Filled.Videocam,
-            iconColor = DuoGreen,
-            onClick = onNavigateToTranslator,
-            badge = "RECOMENDADO",
-            isHighlighted = true
-        )
-
-        Spacer(modifier = Modifier.height(14.dp))
-
-        // Tarjeta 2: Entrenador
-        ActionDashboardCard(
-            title = "Entrenador",
-            subtitle = "Gestiona tu vocabulario de señas",
-            icon = Icons.Filled.School,
-            iconColor = DuoBlue,
-            onClick = onNavigateToTrainer
-        )
-
-        Spacer(modifier = Modifier.height(14.dp))
-
-        // Tarjeta 3: Jugar
-        ActionDashboardCard(
-            title = "Jugar",
-            subtitle = "Aprende jugando y gana estrellas",
-            icon = Icons.Filled.SportsEsports,
-            iconColor = DuoPurple,
-            onClick = onNavigateToGames
-        )
-
-        Spacer(modifier = Modifier.height(24.dp))
-
-        // 4. Sección Inferior: Continuar aprendiendo
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(bottom = 16.dp)
-        ) {
-            Text(
-                text = "Continuar aprendiendo",
-                fontSize = 18.sp,
-                fontWeight = FontWeight.Black,
-                color = DuoTextBlack
-            )
-
-            Spacer(modifier = Modifier.height(12.dp))
-
-            // TODO(Fase 7): Conectar a la siguiente lección guiada según el progreso del usuario
-            DuoButton(
-                text = "CONTINUAR LECCIÓN",
-                onClick = onNavigateToGames,
-                backgroundColor = DuoGreen,
-                darkShadowColor = DuoGreenDark,
-                modifier = Modifier.fillMaxWidth()
-            )
-        }
-    }
-}
-
-@Composable
-private fun ActionDashboardCard(
-    title: String,
-    subtitle: String,
-    icon: ImageVector,
-    iconColor: Color,
-    onClick: () -> Unit,
-    modifier: Modifier = Modifier,
-    badge: String? = null,
-    isHighlighted: Boolean = false
-) {
-    val interactionSource = remember { MutableInteractionSource() }
+    // Degradado vertical exacto: inicia en turquesa #22D3F1 y degrada a gris frío suave (#EDF2F7)
+    val backgroundGradient = Brush.verticalGradient(
+        0.0f to Color(0xFF22D3F1),
+        0.26f to Color(0xFF67E8F9).copy(alpha = 0.55f),
+        0.48f to Color(0xFFEDF2F7),
+        1.0f to Color(0xFFEDF2F7)
+    )
 
     Box(
         modifier = modifier
-            .fillMaxWidth()
-            .clickable(
-                interactionSource = interactionSource,
-                indication = null,
-                onClick = onClick
-            )
+            .fillMaxSize()
+            .background(backgroundGradient)
     ) {
-        DuoCard(
-            backgroundColor = if (isHighlighted) DuoGreenCardBg.copy(alpha = 0.4f) else DuoSurface,
-            borderColor = if (isHighlighted) DuoGreenLight else DuoBorder,
-            cornerRadius = 22.dp,
-            bottomDepth = 5.dp,
-            modifier = Modifier.fillMaxWidth()
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .verticalScroll(scrollState)
+                .statusBarsPadding()
+                .padding(bottom = 115.dp) // Margen para la barra inferior
         ) {
+            // 1. BARRA SUPERIOR (Días de racha a la izquierda, Campana a la derecha)
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(horizontal = 14.dp, vertical = 12.dp),
+                    .padding(horizontal = 20.dp, vertical = 14.dp),
+                horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                // Ilustración vectorial profesional
-                DuoIllustration(
-                    icon = icon,
-                    color = iconColor,
-                    size = 54.dp,
-                    iconSizeRatio = 0.55f
-                )
-
-                Spacer(modifier = Modifier.width(14.dp))
-
-                // Textos centrales
-                Column(
-                    modifier = Modifier.weight(1f)
+                // Pill de Días de Racha (esquina superior izquierda)
+                Row(
+                    modifier = Modifier
+                        .shadow(elevation = 4.dp, shape = CircleShape)
+                        .clip(CircleShape)
+                        .background(Color.White)
+                        .clickable { onNavigateToStats() }
+                        .padding(horizontal = 12.dp, vertical = 7.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(5.dp)
                 ) {
-                    if (badge != null) {
-                        Box(
-                            modifier = Modifier
-                                .clip(RoundedCornerShape(6.dp))
-                                .background(DuoGreen)
-                                .padding(horizontal = 6.dp, vertical = 2.dp)
-                        ) {
-                            Text(
-                                text = badge,
-                                color = DuoSurface,
-                                fontSize = 10.sp,
-                                fontWeight = FontWeight.Black
-                            )
-                        }
-                        Spacer(modifier = Modifier.height(4.dp))
-                    }
-
-                    Text(
-                        text = title,
-                        fontSize = 17.sp,
-                        fontWeight = FontWeight.Black,
-                        color = DuoTextBlack
+                    Icon(
+                        imageVector = Icons.Filled.LocalFireDepartment,
+                        contentDescription = "Días de racha",
+                        tint = Color(0xFFF59E0B),
+                        modifier = Modifier.size(18.dp)
                     )
-
-                    Spacer(modifier = Modifier.height(2.dp))
-
                     Text(
-                        text = subtitle,
+                        text = if (uiState.streakDays == 1) "1 día" else "${uiState.streakDays} días",
                         fontSize = 13.sp,
-                        fontWeight = FontWeight.Medium,
-                        color = DuoTextGray,
-                        lineHeight = 17.sp
+                        fontWeight = FontWeight.Black,
+                        color = Color(0xFF0F172A)
                     )
                 }
 
-                Spacer(modifier = Modifier.width(8.dp))
+                // Campana de Notificaciones
+                Box(
+                    modifier = Modifier
+                        .size(40.dp)
+                        .clip(CircleShape)
+                        .clickable { onNavigateToStats() },
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(
+                        imageVector = Icons.Outlined.Notifications,
+                        contentDescription = "Notificaciones",
+                        tint = Color(0xFF0F172A),
+                        modifier = Modifier.size(24.dp)
+                    )
+                }
+            }
 
-                // Flecha indicadora '>'
-                Icon(
-                    imageVector = Icons.AutoMirrored.Filled.ArrowForwardIos,
-                    contentDescription = null,
-                    tint = DuoTextLight,
-                    modifier = Modifier.size(16.dp)
-                )
+            Spacer(modifier = Modifier.height(6.dp))
+
+            // 2. CARRUSEL HERO DESLIZABLE
+            // Con padding simétrico (20.dp) y pageSpacing (8.dp), la tarjeta turquesa queda
+            // 100% centrada (alineada con Gamificación) y 12.dp de la amarilla se asoman a la derecha.
+            HorizontalPager(
+                state = pagerState,
+                contentPadding = PaddingValues(horizontal = 20.dp),
+                pageSpacing = 8.dp,
+                modifier = Modifier.fillMaxWidth()
+            ) { page ->
+                if (page == 0) {
+                    // Tarjeta 1: Turquesa (sin height fijo restrictivo para que el botón nunca se corte)
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .defaultMinSize(minHeight = 166.dp)
+                            .shadow(
+                                elevation = 8.dp,
+                                shape = RoundedCornerShape(24.dp),
+                                ambientColor = Color(0x3022D3F1),
+                                spotColor = Color(0x20000000)
+                            )
+                            .clip(RoundedCornerShape(24.dp))
+                            .background(
+                                Brush.horizontalGradient(
+                                    listOf(Color(0xFF22D3F1), Color(0xFF06B6D4))
+                                )
+                            )
+                            .padding(horizontal = 20.dp, vertical = 20.dp)
+                    ) {
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.SpaceBetween
+                        ) {
+                            Column(
+                                modifier = Modifier.weight(1.25f),
+                                verticalArrangement = Arrangement.spacedBy(14.dp)
+                            ) {
+                                Text(
+                                    text = "Lecciones de\neducación de\ncalidad gratuitas",
+                                    fontSize = 16.sp,
+                                    fontWeight = FontWeight.Black,
+                                    color = Color(0xFF0F172A),
+                                    lineHeight = 21.sp
+                                )
+
+                                Box(
+                                    modifier = Modifier
+                                        .shadow(elevation = 3.dp, shape = CircleShape)
+                                        .clip(CircleShape)
+                                        .background(Color(0xFFFBBF24))
+                                        .clickable(onClick = onNavigateToTrainer)
+                                        .padding(horizontal = 22.dp, vertical = 10.dp),
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    Text(
+                                        text = "Comenzar",
+                                        fontSize = 13.sp,
+                                        fontWeight = FontWeight.Black,
+                                        color = Color(0xFF1E293B)
+                                    )
+                                }
+                            }
+
+                            Box(
+                                modifier = Modifier
+                                    .weight(0.75f),
+                                contentAlignment = Alignment.CenterEnd
+                            ) {
+                                Image(
+                                    painter = painterResource(id = R.drawable.perrito_manchisenas),
+                                    contentDescription = "Perrito ManchiSeñas",
+                                    contentScale = ContentScale.Fit,
+                                    modifier = Modifier.size(110.dp)
+                                )
+                            }
+                        }
+                    }
+                } else {
+                    // Tarjeta 2: Amarilla (Se asoma 12.dp a la derecha indicando que se puede deslizar)
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .defaultMinSize(minHeight = 166.dp)
+                            .shadow(
+                                elevation = 8.dp,
+                                shape = RoundedCornerShape(24.dp),
+                                ambientColor = Color(0x30FBBF24),
+                                spotColor = Color(0x20000000)
+                            )
+                            .clip(RoundedCornerShape(24.dp))
+                            .background(
+                                Brush.horizontalGradient(
+                                    listOf(Color(0xFFFBBF24), Color(0xFFF59E0B))
+                                )
+                            )
+                            .padding(horizontal = 20.dp, vertical = 20.dp)
+                    ) {
+                        Column(
+                            modifier = Modifier.fillMaxWidth(),
+                            verticalArrangement = Arrangement.spacedBy(14.dp)
+                        ) {
+                            Text(
+                                text = "Practica en vivo\ncon el traductor\nde señas LSV",
+                                fontSize = 16.sp,
+                                fontWeight = FontWeight.Black,
+                                color = Color(0xFF0F172A),
+                                lineHeight = 21.sp
+                            )
+
+                            Box(
+                                modifier = Modifier
+                                    .shadow(elevation = 3.dp, shape = CircleShape)
+                                    .clip(CircleShape)
+                                    .background(Color.White)
+                                    .clickable(onClick = onNavigateToTranslator)
+                                    .padding(horizontal = 22.dp, vertical = 10.dp),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Text(
+                                    text = "Traducir",
+                                    fontSize = 13.sp,
+                                    fontWeight = FontWeight.Black,
+                                    color = Color(0xFF0F172A)
+                                )
+                            }
+                        }
+                    }
+                }
+            }
+
+            Spacer(modifier = Modifier.height(20.dp))
+
+            // 3. SECCIÓN DE GAMIFICACIÓN UNIFICADA EN UNA SOLA TARJETA CON PROFUNDIDAD 3D (DuoCard)
+            DuoCard(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 20.dp),
+                backgroundColor = DuoSurface,
+                borderColor = DuoBorder,
+                cornerRadius = 24.dp,
+                bottomDepth = 5.dp
+            ) {
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(4.dp),
+                    verticalArrangement = Arrangement.spacedBy(14.dp)
+                ) {
+                    // Cabecera "Gamificación" + chevron
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clickable(onClick = onNavigateToGames),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(
+                            text = "Gamificación",
+                            fontSize = 20.sp,
+                            fontWeight = FontWeight.Black,
+                            color = Color(0xFF0F172A)
+                        )
+
+                        Icon(
+                            imageVector = Icons.AutoMirrored.Rounded.ArrowForwardIos,
+                            contentDescription = "Ver más",
+                            tint = Color(0xFF334155),
+                            modifier = Modifier.size(16.dp)
+                        )
+                    }
+
+                    // Sub-tarjeta 1: Trofeo + desafío diario + botón turquesa "Comenzar"
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clip(RoundedCornerShape(18.dp))
+                            .background(Color(0xFFF1F5F9))
+                            .padding(14.dp)
+                    ) {
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(14.dp)
+                        ) {
+                            Box(
+                                modifier = Modifier
+                                    .size(72.dp)
+                                    .clip(RoundedCornerShape(16.dp))
+                                    .background(Color(0xFFFEF3C7)),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Rounded.EmojiEvents,
+                                    contentDescription = "Trofeo",
+                                    tint = Color(0xFFF59E0B),
+                                    modifier = Modifier.size(44.dp)
+                                )
+                            }
+
+                            Column(
+                                modifier = Modifier.weight(1f),
+                                verticalArrangement = Arrangement.spacedBy(6.dp)
+                            ) {
+                                Text(
+                                    text = "Completa los desafíos\ndel día para obtener\nmás puntos",
+                                    fontSize = 14.sp,
+                                    fontWeight = FontWeight.Black,
+                                    color = Color(0xFF1E293B),
+                                    lineHeight = 18.sp
+                                )
+
+                                Text(
+                                    text = "Progreso de hoy: ${uiState.todayProgress}/${uiState.dailyGoal} señas",
+                                    fontSize = 11.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    color = Color(0xFF64748B)
+                                )
+
+                                Box(
+                                    modifier = Modifier
+                                        .align(Alignment.End)
+                                        .shadow(elevation = 3.dp, shape = CircleShape)
+                                        .clip(CircleShape)
+                                        .background(Color(0xFF22D3F1))
+                                        .clickable(onClick = onNavigateToGames)
+                                        .padding(horizontal = 18.dp, vertical = 7.dp),
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    Text(
+                                        text = "Comenzar",
+                                        fontSize = 12.sp,
+                                        fontWeight = FontWeight.Black,
+                                        color = Color.White
+                                    )
+                                }
+                            }
+                        }
+                    }
+
+                    // Sub-tarjeta 2: Retos + botón amarillo "Retos"
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clip(RoundedCornerShape(18.dp))
+                            .background(Color(0xFFF1F5F9))
+                            .padding(14.dp)
+                    ) {
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.SpaceBetween
+                        ) {
+                            Text(
+                                text = "Completa los desafíos del día para obtener insignias",
+                                fontSize = 13.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = Color(0xFF1E293B),
+                                modifier = Modifier.weight(1f)
+                            )
+
+                            Spacer(modifier = Modifier.width(12.dp))
+
+                            Box(
+                                modifier = Modifier
+                                    .shadow(elevation = 3.dp, shape = CircleShape)
+                                    .clip(CircleShape)
+                                    .background(Color(0xFFFBBF24))
+                                    .clickable(onClick = onNavigateToGames)
+                                    .padding(horizontal = 18.dp, vertical = 7.dp),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Text(
+                                    text = "Retos",
+                                    fontSize = 12.sp,
+                                    fontWeight = FontWeight.Black,
+                                    color = Color(0xFF1E293B)
+                                )
+                            }
+                        }
+                    }
+                }
             }
         }
     }

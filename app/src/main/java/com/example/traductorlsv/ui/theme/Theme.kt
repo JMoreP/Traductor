@@ -11,9 +11,9 @@ import androidx.compose.ui.platform.LocalView
 import androidx.core.view.WindowCompat
 
 private val DuoColorScheme = lightColorScheme(
-    primary = DuoGreen,
+    primary = DuoTurquoise,
     onPrimary = DuoSurface,
-    primaryContainer = DuoGreenLight,
+    primaryContainer = DuoTurquoiseLight,
     onPrimaryContainer = DuoTextBlack,
     secondary = DuoBlue,
     onSecondary = DuoSurface,
@@ -41,8 +41,8 @@ fun TraductorLSVTheme(
         SideEffect {
             val window = (view.context as? Activity)?.window
             if (window != null) {
-                window.statusBarColor = DuoGreen.toArgb()
-                WindowCompat.getInsetsController(window, view).isAppearanceLightStatusBars = false
+                window.statusBarColor = DuoTurquoise.toArgb()
+                WindowCompat.getInsetsController(window, view).isAppearanceLightStatusBars = true
             }
         }
     }

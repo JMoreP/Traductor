@@ -10,7 +10,6 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.rounded.BarChart
 import androidx.compose.material.icons.rounded.CheckCircle
 import androidx.compose.material.icons.rounded.EmojiEvents
 import androidx.compose.material.icons.rounded.LocalFireDepartment
@@ -33,7 +32,6 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.ContentScale
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -73,7 +71,7 @@ fun StatsScreen(
                 .padding(horizontal = 20.dp, vertical = 16.dp),
             verticalArrangement = Arrangement.spacedBy(20.dp)
         ) {
-            // Header con Mascota Turpial
+            // Header con Perrito ManchiSeñas
             StatsMascotHeader()
 
             // Grid 2x2 de Resumen General
@@ -154,7 +152,7 @@ private fun DuoTopBar(
 }
 
 /**
- * Header superior con la mascota oficial Turpi y mensaje motivador.
+ * Header superior con el personaje oficial Perrito ManchiSeñas y mensaje motivador.
  */
 @Composable
 private fun StatsMascotHeader() {
@@ -167,24 +165,13 @@ private fun StatsMascotHeader() {
             modifier = Modifier.fillMaxWidth(),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            // Intentar cargar la mascota desde drawable, o usar ilustración fallback
-            val context = LocalContext.current
-            val hasMascotDrawable = context.resources.getIdentifier("mascot_happy", "drawable", context.packageName) != 0
-
-            if (hasMascotDrawable) {
-                Image(
-                    painter = painterResource(id = R.drawable.mascot_happy),
-                    contentDescription = "Mascota Turpi",
-                    contentScale = ContentScale.Fit,
-                    modifier = Modifier.size(80.dp)
-                )
-            } else {
-                DuoIllustration(
-                    icon = Icons.Rounded.BarChart,
-                    color = DuoGreen,
-                    size = 64.dp
-                )
-            }
+            // Cargar el personaje oficial Perrito ManchiSeñas
+            Image(
+                painter = painterResource(id = R.drawable.perrito_manchisenas),
+                contentDescription = "Perrito ManchiSeñas",
+                contentScale = ContentScale.Fit,
+                modifier = Modifier.size(84.dp)
+            )
 
             Spacer(modifier = Modifier.width(16.dp))
 

@@ -1,18 +1,19 @@
 package com.example.traductorlsv.navigation
 
-import androidx.compose.foundation.layout.WindowInsets
-import androidx.compose.foundation.layout.padding
-import androidx.compose.material3.Scaffold
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.navigation.NavGraph.Companion.findStartDestination
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
-import com.example.traductorlsv.ui.components.DuoBottomNavigation
+import com.example.traductorlsv.ui.components.ModernFloatingNavBar
 import com.example.traductorlsv.ui.screens.games.Game
 import com.example.traductorlsv.ui.screens.games.GamePlaceholderScreen
 import com.example.traductorlsv.ui.screens.games.GamesScreen
@@ -36,7 +37,7 @@ fun TraductorNavHost(
     val navBackStackEntry by navController.currentBackStackEntryAsState()
     val currentRoute = navBackStackEntry?.destination?.route
 
-    // Rutas principales donde la barra de navegación inferior DEBE mostrarse
+    // Rutas principales donde la barra de navegación flotante DEBE mostrarse
     val bottomBarRoutes = remember {
         setOf(
             Route.Home.route,
@@ -51,37 +52,13 @@ fun TraductorNavHost(
     }
     val showBottomBar = currentRoute in bottomBarRoutes
 
-    Scaffold(
-        contentWindowInsets = WindowInsets(0, 0, 0, 0),
-        bottomBar = {
-            if (showBottomBar) {
-                val selectedBottomRoute = when (currentRoute) {
-                    Route.GameGuess.route,
-                    Route.GameMemory.route,
-                    Route.GameSpeed.route,
-                    Route.GameChallenge.route -> Route.Games.route
-                    else -> currentRoute
-                }
-                DuoBottomNavigation(
-                    currentRoute = selectedBottomRoute,
-                    onNavigate = { route ->
-                        navController.navigate(route) {
-                            popUpTo(navController.graph.findStartDestination().id) {
-                                saveState = true
-                            }
-                            launchSingleTop = true
-                            restoreState = true
-                        }
-                    }
-                )
-            }
-        },
-        modifier = modifier
-    ) { innerPadding ->
+    Box(
+        modifier = modifier.fillMaxSize()
+    ) {
         NavHost(
             navController = navController,
             startDestination = Route.Splash.route,
-            modifier = Modifier.padding(innerPadding)
+            modifier = Modifier.fillMaxSize()
         ) {
             // Flujo Inicial
             composable(Route.Splash.route) {
@@ -115,6 +92,9 @@ fun TraductorNavHost(
                     },
                     onNavigateToGames = {
                         navController.navigate(Route.Games.route)
+                    },
+                    onNavigateToStats = {
+                        navController.navigate(Route.Stats.route)
                     }
                 )
             }
@@ -209,6 +189,32 @@ fun TraductorNavHost(
                     }
                 )
             }
+        }
+
+        // Barra de Navegación Flotante con Cuna Neumórfica
+        if (showBottomBar) {
+            val selectedBottomRoute = when (currentRoute) {
+                Route.GameGuess.route,
+                Route.GameMemory.route,
+                Route.GameSpeed.route,
+                Route.GameChallenge.route -> Route.Games.route
+                else -> currentRoute
+            }
+            ModernFloatingNavBar(
+                currentRoute = selectedBottomRoute,
+                onNavigate = { route ->
+                    navController.navigate(route) {
+                        popUpTo(navController.graph.findStartDestination().id) {
+                            saveState = true
+                        }
+                        launchSingleTop = true
+                        restoreState = true
+                    }
+                },
+                modifier = Modifier
+                    .align(Alignment.BottomCenter)
+                    .fillMaxWidth()
+            )
         }
     }
 }

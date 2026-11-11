@@ -43,7 +43,7 @@ fun DuoBottomNavigation(
     ) {
         BottomNavItem.all.forEach { item ->
             val isSelected = currentRoute == item.route
-            val itemColor = if (isSelected) DuoGreen else DuoTextLight
+            val itemColor = if (isSelected) DuoTurquoise else DuoTextLight
 
             Column(
                 horizontalAlignment = Alignment.CenterHorizontally,

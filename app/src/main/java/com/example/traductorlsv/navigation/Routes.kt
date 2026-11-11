@@ -17,6 +17,7 @@ sealed class Route(val route: String) {
     object Home : Route("home")
     object Translator : Route("translator") // Destino inicial temporal en Fase 1
     object Trainer : Route("trainer")       // Placeholder para Fase 5
+    object Practice : Route("trainer")      // Alias para Práctica guiada (Fase 5)
     object Games : Route("games")           // Hub de Juegos (Fase 6)
     object Stats : Route("stats")           // Placeholder para Fase 10
     object Profile : Route("profile")       // Placeholder para Fase 10
